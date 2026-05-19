@@ -1,0 +1,29 @@
+{
+  "messages": [
+    {
+      "id": "G4TBT5yfRMrYLuMpBVs7V",
+      "roomId": "general",
+      "username": "Kaye",
+      "text": "Kia!",
+      "createdAt": "2026-05-19T21:12:50.071Z",
+      "type": "message"
+    },
+    {
+      "id": "4aWs9hukPSVTB1pCQrXlR",
+      "roomId": "general",
+      "username": "Kaye",
+      "text": "/uploads/1779225193424-767314.txt",
+      "createdAt": "2026-05-19T21:13:14.569Z",
+      "type": "message"
+    },
+    {
+      "id": "S-s1OGDtHdL4YQgxTfQZM",
+      "roomId": "general",
+      "username": "AJ",
+      "text": "SUP!",
+      "createdAt": "2026-05-19T21:14:41.937Z",
+      "type": "message"
+    }
+  ],
+  "tasks": []
+}

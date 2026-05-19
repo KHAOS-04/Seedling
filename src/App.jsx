@@ -1,70 +1,75 @@
 import { useEffect, useState } from 'react'
 import socket from './lib/socket'
 import UsernameModal from './components/UsernameModal'
-import Sidebar from './components/Sidebar'
-import ChatRoom from './components/ChatRoom'
-import TaskBoard from './components/TaskBoard'
+import Sidebar       from './components/Sidebar'
+import ChatRoom      from './components/ChatRoom'
+import TaskBoard     from './components/TaskBoard'
 
-// App.jsx is the top-level shell.
-// It owns the global state: username, current room, online users, tasks.
-// Child components receive what they need as props.
+// ─────────────────────────────────────────────────────────────────────────────
+// ARCHITECTURE NOTE
+//
+// App.jsx owns ALL global socket listeners (presence, tasks).
+// Child components receive data as props and emit events only.
+//
+// ChatRoom is the sole exception — it manages room-scoped listeners
+// (chat:history, chat:receive, typing:update) that must reset on room change.
+//
+// WHY: socket.off('event', fn) removes only that exact function reference.
+// Without named refs, socket.off('event') wipes ALL listeners for that event
+// across every component — the root cause of the previous bugs.
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [username, setUsername]       = useState('')
-  const [connected, setConnected]     = useState(false)
+  const [username,    setUsername]    = useState('')
+  const [connected,   setConnected]   = useState(false)
   const [currentRoom, setCurrentRoom] = useState('general')
   const [onlineUsers, setOnlineUsers] = useState([])
-  const [tasks, setTasks]             = useState([]) // for sprout pips in sidebar
+  const [tasks,       setTasks]       = useState([])
 
-  // ── Connect when username is set ──────────────────────────────────────────
+  // Connect once the user has chosen a name
   useEffect(() => {
     if (!username) return
 
     socket.auth = { username }
     socket.connect()
 
-    socket.on('connect', () => setConnected(true))
-    socket.on('disconnect', () => setConnected(false))
+    // ── Named handler refs ─────────────────────────────────────────────────
+    const onConnect    = ()      => setConnected(true)
+    const onDisconnect = ()      => setConnected(false)
+    const onPresence   = (users) => setOnlineUsers(users)
+    const onTaskAll    = (list)  => setTasks(list)
 
-    // Server broadcasts the updated online list whenever someone joins/leaves
-    socket.on('presence:update', (users) => {
-      setOnlineUsers(users)
-    })
-
-    // Keep tasks in sync for the sprout pip display in the sidebar
-    socket.on('task:all', (allTasks) => setTasks(allTasks))
-    socket.on('task:update', (updated) => {
-      setTasks((prev) => {
-        const exists = prev.find((t) => t.id === updated.id)
-        return exists
-          ? prev.map((t) => t.id === updated.id ? updated : t)
+    const onTaskUpdate = (updated) =>
+      setTasks((prev) =>
+        prev.some((t) => t.id === updated.id)
+          ? prev.map((t) => (t.id === updated.id ? updated : t))
           : [...prev, updated]
-      })
-    })
-    socket.on('task:removed', ({ id }) => {
+      )
+
+    const onTaskRemoved = ({ id }) =>
       setTasks((prev) => prev.filter((t) => t.id !== id))
-    })
+
+    socket.on('connect',         onConnect)
+    socket.on('disconnect',      onDisconnect)
+    socket.on('presence:update', onPresence)
+    socket.on('task:all',        onTaskAll)
+    socket.on('task:update',     onTaskUpdate)
+    socket.on('task:removed',    onTaskRemoved)
 
     return () => {
-      socket.off('connect')
-      socket.off('disconnect')
-      socket.off('presence:update')
-      socket.off('task:all')
-      socket.off('task:update')
-      socket.off('task:removed')
+      socket.off('connect',         onConnect)
+      socket.off('disconnect',      onDisconnect)
+      socket.off('presence:update', onPresence)
+      socket.off('task:all',        onTaskAll)
+      socket.off('task:update',     onTaskUpdate)
+      socket.off('task:removed',    onTaskRemoved)
     }
   }, [username])
 
-  // ── Username prompt ───────────────────────────────────────────────────────
-  if (!username) {
-    return <UsernameModal onJoin={setUsername} />
-  }
+  if (!username) return <UsernameModal onJoin={setUsername} />
 
-  // ── Main layout ───────────────────────────────────────────────────────────
   return (
-    <div className="flex h-screen bg-purple-50 overflow-hidden">
-
-      {/* Left sidebar */}
+    <div className="flex h-screen overflow-hidden bg-[#F8F7FF]">
       <Sidebar
         currentRoom={currentRoom}
         onRoomChange={setCurrentRoom}
@@ -73,11 +78,9 @@ export default function App() {
         tasks={tasks}
         connected={connected}
       />
-
-      {/* Main content area */}
-      <main className="flex-1 flex flex-col min-w-0 rounded-l-3xl overflow-hidden shadow-sm border-l border-purple-100">
+      <main className="flex-1 min-w-0 flex flex-col overflow-hidden bg-white rounded-tl-3xl border-l border-purple-100 shadow-sm">
         {currentRoom === 'tasks' ? (
-          <TaskBoard username={username} />
+          <TaskBoard username={username} tasks={tasks} />
         ) : (
           <ChatRoom roomId={currentRoom} username={username} />
         )}

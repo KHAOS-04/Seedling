@@ -2,46 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: #F8F7FF;
-  font-family: 'Inter', system-ui, sans-serif;
+  background: #F8F7FF;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Thin, soft scrollbar for chat and columns */
-::-webkit-scrollbar {
-  width: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #C4B5FD;
-  border-radius: 4px;
-}
+/* Thin pastel scrollbar */
+::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: #C4B5FD; border-radius: 4px; }
 
-/* Message slide-in animation */
+/* Message slide-up animation */
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
 }
+.msg-enter { animation: slideUp 0.18s ease-out both; }
 
-.message-enter {
-  animation: slideUp 0.18s ease-out;
+/* Toast pop-in */
+@keyframes popIn {
+  from { opacity: 0; transform: translateX(-50%) scale(0.9); }
+  to   { opacity: 1; transform: translateX(-50%) scale(1);   }
 }
+.toast-enter { animation: popIn 0.2s ease-out both; }
 
-/* Auto-resize textarea */
-textarea {
-  field-sizing: content;
+/* Typing dot bounce */
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: translateY(0);    opacity: 0.4; }
+  40%           { transform: translateY(-4px); opacity: 1;   }
 }

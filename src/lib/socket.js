@@ -1,9 +1,14 @@
 import { io } from 'socket.io-client'
 
-// We create ONE socket connection for the whole app.
-// Importing this file from any component gives the same instance.
-const socket = io('http://localhost:3001', {
-  autoConnect: false, // We connect manually after the user picks a username
+// One socket instance shared across the whole app.
+// autoConnect: false means we connect manually once the user picks a username.
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001'
+
+const socket = io(SERVER_URL, {
+  autoConnect: false,
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionAttempts: 5,
 })
 
 export default socket

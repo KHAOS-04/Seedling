@@ -1,0 +1,26 @@
+critter Kaboo:
+	energy = 100
+	hunger = 80
+
+	teach Eat:
+	say "Munch munch, Munch"
+
+	teach Bark:
+	say "arf arf"
+	
+	teach Sleep:
+	say "zZzzzZzzz"
+
+tell Kaboo:
+	energy = energy - 80
+	hunger = hunger - 52
+
+if Kaboo.hunger < 50:
+	ask Kaboo to Eat
+
+if Kaboo.energy > 50:
+	ask Kaboo to Bark
+
+if Kaboo.energy < 50:
+	ask Kaboo to Sleep
+

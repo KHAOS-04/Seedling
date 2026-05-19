@@ -2,56 +2,46 @@ import express from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-// --- Express setup ---
+import { registerPresenceHandlers } from './handlers/presenceHandler.js'
+import { registerChatHandlers }     from './handlers/chatHandler.js'
+import { registerTaskHandlers }     from './handlers/taskHandler.js'
+import { registerUploadRoute }      from './handlers/uploadHandler.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+// ── Express ──────────────────────────────────────────────────────────────────
 const app = express()
-app.use(cors())
+app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }))
 app.use(express.json())
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
-// A simple health-check route so you can visit http://localhost:3001
-// in your browser and confirm the server is running.
-app.get('/', (req, res) => {
-  res.send('🌱 Seedling server is running!')
-})
+app.get('/', (req, res) => res.send('🌱 Seedling server is running'))
 
-// --- HTTP + Socket.IO setup ---
-// Socket.IO needs to wrap the raw HTTP server (not just Express).
-// This is the standard Socket.IO setup pattern.
+registerUploadRoute(app)
+
+// ── Socket.IO ────────────────────────────────────────────────────────────────
 const httpServer = createServer(app)
 
 const io = new Server(httpServer, {
   cors: {
-    origin: 'http://localhost:5173', // Only allow our Vite frontend
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
     methods: ['GET', 'POST'],
   },
 })
 
-// --- Socket.IO events ---
-// This block runs once for every new browser that connects.
 io.on('connection', (socket) => {
-  // socket.handshake.auth contains data the client sent on connect.
-  // We sent { username } from App.jsx.
-  const username = socket.handshake.auth.username || 'Anonymous'
+  const username = socket.handshake.auth.username?.trim() || 'Anonymous'
 
-  console.log(`✅ ${username} connected (socket: ${socket.id})`)
-
-  // Send a welcome message back to just this client (not everyone).
-  // socket.emit() = send to this client only
-  // io.emit()     = send to ALL clients
-  socket.emit('welcome', {
-    message: `Welcome to Seedling, ${username}!`,
-    socketId: socket.id,
-  })
-
-  // This fires when the browser tab closes, user navigates away, etc.
-  socket.on('disconnect', () => {
-    console.log(`❌ ${username} disconnected`)
-  })
+  registerPresenceHandlers(io, socket, username)
+  registerChatHandlers(io, socket, username)
+  registerTaskHandlers(io, socket, username)
 })
 
-// --- Start listening ---
-const PORT = 3001
+// ── Start ─────────────────────────────────────────────────────────────────────
+const PORT = process.env.PORT || 3001
 httpServer.listen(PORT, () => {
-  console.log(`\n🌱 Seedling server running on http://localhost:${PORT}`)
-  console.log(`   Waiting for connections...\n`)
+  console.log(`\n🌱 Seedling server → http://localhost:${PORT}\n`)
 })
